@@ -5,6 +5,8 @@ import numpy as np
 import os
 from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
+import json
+import yaml
 
 def read_image(filepath):
     image = io.read_image(filepath, io.ImageReadMode.RGB)
@@ -12,6 +14,27 @@ def read_image(filepath):
 
 def write_image(filepath, src):
     io.write_png(src, filepath)
+    
+def pad_image_to_factor_of_16(image_tensor):
+    # Get the original dimensions of the image tensor
+    original_height, original_width = image_tensor.size(-2), image_tensor.size(-1)
+
+    # Calculate the padding amounts needed on x and y dimensions
+    pad_x = (16 - (original_width % 16)) % 16
+    pad_y = (16 - (original_height % 16)) % 16
+
+    # Decide whether to pad from left or both sides based on whether the original width is odd or even
+    pad_left = pad_x // 2 if original_width % 2 == 0 else pad_x
+    pad_right = pad_x // 2 if original_width % 2 == 0 else pad_x - pad_left
+
+    # Decide whether to pad from top or both sides based on whether the original height is odd or even
+    pad_top = pad_y // 2 if original_height % 2 == 0 else pad_y
+    pad_bottom = pad_y // 2 if original_height % 2 == 0 else pad_y - pad_top
+
+    # Pad the image tensor
+    padded_image_tensor = torch.nn.functional.pad(image_tensor, (pad_left, pad_right, pad_top, pad_bottom), mode='constant', value=0)
+
+    return padded_image_tensor
 
 # from PPON library
 def convert_shape(img):
