@@ -5,6 +5,7 @@ import numpy as np
 import os
 from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import mean_squared_error as mse
 import json
 import yaml
 
@@ -49,6 +50,9 @@ def shave(im, border):
 
 def quantize(img):
     return img.clip(0, 255).round().astype(np.uint8)
+
+def compute_mse(im1, im2):
+    return mse(im1, im2)
 
 def compute_psnr(im1, im2):
     p = psnr(im1, im2)

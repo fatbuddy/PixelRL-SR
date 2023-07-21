@@ -55,6 +55,9 @@ def main():
 
     reward_array = []
     metric_array = []
+    psnr_sr = np.zeros(len(LS_HR_PATHS))
+    ssim_sr = np.zeros(len(LS_HR_PATHS))
+    mse_sr = np.zeros(len(LS_HR_PATHS))
     for i in range(0, len(LS_HR_PATHS)):
         hr_image_path = LS_HR_PATHS[i]
         lr_image_path = LS_LR_PATHS[i]
@@ -88,12 +91,19 @@ def main():
                 sum_reward += torch.mean(reward * 255) * (GAMMA ** t)
 
             sr = torch.clip(CURRENT_STATE.sr_image, 0.0, 1.0)
-            psnr = PSNR(hr, sr)
+            psnr_sr[i] = PSNR(hr, sr)
+            sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
+            ssim_sr[i] = compute_ssim(quantize(hr.detach().numpy()),quantize(sr_image_np))
+            mse_sr[i] = compute_mse(quantize(hr.detach().numpy()), sr_image_np)
             metric_array.append(psnr)
             reward_array.append(sum_reward)
 
-    print(f"Average reward: {torch.mean(torch.tensor(reward_array) * 255):.4f}",
-          f"- PSNR: {torch.mean(torch.tensor(metric_array)):.4f}")
+    print(f"Average reward: {torch.mean(torch.tensor(reward_array) * 255):.4f}")
+        #   ,
+        #   f"- PSNR: {torch.mean(torch.tensor(metric_array)):.4f}")
+    print('Mean PSNR for SR: {}'.format(np.mean(psnr_sr)))
+    print('Mean SSIM for SR: {}'.format(np.mean(ssim_sr)))
+    print('Mean MSE for SR: {}'.format(np.mean(mse_sr)))
 
 if __name__ == '__main__':
     main()
