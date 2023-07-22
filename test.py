@@ -94,7 +94,7 @@ def main():
             psnr_sr[i] = PSNR(hr, sr)
             sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
             ssim_sr[i] = compute_ssim(quantize(hr.detach().numpy()),quantize(sr_image_np))
-            mse_sr[i] = compute_mse(quantize(hr.detach().numpy()), sr_image_np)
+            mse_sr[i] = compute_mse(quantize(hr.detach().numpy()), quantize(sr_image_np))
             metric_array.append(psnr)
             reward_array.append(sum_reward)
 
