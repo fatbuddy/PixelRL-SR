@@ -92,15 +92,18 @@ def main():
 
             sr = torch.clip(CURRENT_STATE.sr_image, 0.0, 1.0)
             psnr_sr[i] = PSNR(hr, sr)
-            sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
-            ssim_sr[i] = compute_ssim(quantize(hr.detach().numpy()),quantize(sr_image_np))
-            mse_sr[i] = compute_mse(quantize(hr.detach().numpy()), quantize(sr_image_np))
+            psnr = PSNR(hr, sr)
             metric_array.append(psnr)
+            sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
+            sr_image_np = (sr_image_np * 255.0).astype(np.uint8)
+            hr_image_np = (hr.detach().numpy() * 255.0).astype(np.uint8)
+            ssim_sr[i] = compute_ssim(hr_image_np, sr_image_np)
+            mse_sr[i] = compute_mse(hr_image_np, sr_image_np)
+            metric_array.append(psnr_sr[i])
             reward_array.append(sum_reward)
 
-    print(f"Average reward: {torch.mean(torch.tensor(reward_array) * 255):.4f}")
-        #   ,
-        #   f"- PSNR: {torch.mean(torch.tensor(metric_array)):.4f}")
+    print(f"Average reward: {torch.mean(torch.tensor(reward_array) * 255):.4f}"
+          , f"- PSNR: {torch.mean(torch.tensor(metric_array)):.4f}")
     print('Mean PSNR for SR: {}'.format(np.mean(psnr_sr)))
     print('Mean SSIM for SR: {}'.format(np.mean(ssim_sr)))
     print('Mean MSE for SR: {}'.format(np.mean(mse_sr)))
