@@ -82,6 +82,25 @@ class State:
         self.SwinIR = define_model(opt)
         self.SwinIR.eval()
 
+        self.HAT_model = HAT(upscale=4,
+            in_chans=3,
+            img_size=64,
+            window_size=16,
+            compress_ratio=3,
+            squeeze_factor=30,
+            conv_scale=0.01,
+            overlap_ratio=0.5,
+            img_range=1,
+            depths=[6, 6, 6, 6, 6, 6],
+            embed_dim=180,
+            num_heads=[6, 6, 6, 6, 6, 6],
+            mlp_ratio=2,
+            upsampler='pixelshuffle',
+            resi_connection='1conv').to(device)
+        model_path = "sr_weight/HAT_SRx4.pth"
+        self.HAT_model.load_state_dict(torch.load(model_path)['params_ema'])
+        self.HAT_model.eval()
+
     def reset(self, lr, bicubic):
         self.lr_image = lr 
         self.sr_image = bicubic
@@ -122,11 +141,6 @@ class State:
                 out_c, out_s, out_p = out_c.cpu(), out_s.cpu(), out_p.cpu()
                 out_img_p = out_c.detach().numpy().squeeze()
                 ppon = torch.from_numpy(out_img_p)
-                # out_img_c = convert_shape(out_img_c)
-                # out_img_s = out_s.detach().numpy()
-                # out_img_s = convert_shape(out_img_s)
-                # out_img_p = out_p.detach().numpy()
-                # out_img_p = convert_shape(out_img_p)
             if exist_value(act, 4):
                 # change SRCNN to SwinIR
                 self.SwinIR.cuda()
@@ -137,28 +151,19 @@ class State:
                 # print(out_img_c.shape)
                 swinir = torch.from_numpy(output)
             if exist_value(act, 5):
+                # change VDSR to HAT
+                print(f"lr_image shape: {self.lr_image.float().shape}")
                 hat = self.HAT_model(self.lr_image.float())
                 hat = to_cpu(hat.int())
-            #     srcnn[:, :, 8:-8, 8:-8] = to_cpu(self.SRCNN(self.sr_image))
-            #     # print(f"srcnn shape: {srcnn.shape}")
-            # if exist_value(act, 5):
-            #     vdsr = to_cpu(self.VDSR(self.sr_image))
-            #     # print(f"VDSR shape: {vdsr.shape}")
-            # if exist_value(act, 6):
-            #     fsrcnn = to_cpu(self.FSRCNN(self.lr_image))
-                # print(f"fsrcnn shape: {fsrcnn.shape}")
 
         self.lr_image = to_cpu(self.lr_image)
         self.sr_image = moved_image
         act = act.unsqueeze(1)
         act = torch.concat([act, act, act], 1)
   
-        # self.sr_image = torch.where(act==3, espcn,  self.sr_image)
         self.sr_image = torch.where(act==3, ppon,  self.sr_image)
         self.sr_image = torch.where(act==4, swinir,  self.sr_image)
         self.sr_image = torch.where(act==5, hat,  self.sr_image)
-        # self.sr_image = torch.where(act==5, vdsr,   self.sr_image)
-        # self.sr_image = torch.where(act==6, fsrcnn, self.sr_image)
 
         self.tensor[:,0:3,:,:] = self.sr_image
         self.tensor[:,-64:,:,:] = inner_state
