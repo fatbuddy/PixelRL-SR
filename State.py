@@ -143,7 +143,6 @@ class State:
             #     ppon = torch.from_numpy(out_img_c)
 
             if exist_value(act, 3):
-                self.RANKSRGAN.cuda()
                 self.lr_image.cuda()
                 with torch.no_grad():
                     self.RANKSRGAN.feed_data([self.lr_image], need_GT=False)
