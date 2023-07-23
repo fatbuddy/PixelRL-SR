@@ -24,7 +24,8 @@ class State:
         self.tensor = None
         self.move_range = 3
 
-        # PPON
+        dev = torch.device(device)
+
         opt = {
             'alpha': 1.0,
             'cuda': True,
@@ -100,12 +101,9 @@ class State:
     def step(self, act, inner_state):
         act = to_cpu(act)
         inner_state = to_cpu(inner_state)
-        # srcnn = self.sr_image.clone()
-        # espcn = self.sr_image.clone()
         ppon = self.sr_image.clone()
-        fsrcnn = self.sr_image.clone()
-        vdsr = self.sr_image.clone()
         swinir = self.sr_image.clone()
+        hat = self.sr_image.clone()
 
         neutral = (self.move_range - 1) / 2
         move = act.type(torch.float32)
