@@ -3,6 +3,7 @@ from neuralnet import ESPCN_model, FSRCNN_model, SRCNN_model, VDSR_model
 from SwinIR.utils import *
 import torch.nn as nn
 from PPON.PPON_model import PPONModel
+from RANKSRGAN.RankSRGAN_model import SRGANModel
 from PPON import networks
 from utils.common import exist_value, to_cpu, convert_shape, pad_image_to_factor_of_16
 import json
@@ -23,23 +24,7 @@ class State:
         self.tensor = None
         self.move_range = 3
 
-        dev = torch.device(device)
-
-        self.FSRCNN = FSRCNN_model(scale).to(device)
-        model_path = f"sr_weight/x{scale}/FSRCNN-x{scale}.pt"
-        self.FSRCNN.load_state_dict(torch.load(model_path, dev))
-        self.FSRCNN.eval()
-
-        self.ESPCN = ESPCN_model(scale).to(device)
-        model_path = f"sr_weight/x{scale}/ESPCN-x{scale}.pt"
-        self.ESPCN.load_state_dict(torch.load(model_path, dev))
-        self.ESPCN.eval()
-
-        self.VDSR = VDSR_model().to(device)
-        model_path = "sr_weight/VDSR.pt"
-        self.VDSR.load_state_dict(torch.load(model_path, dev))
-        self.VDSR.eval()
-        
+        # PPON
         opt = {
             'alpha': 1.0,
             'cuda': True,
@@ -62,7 +47,6 @@ class State:
             self.PPON = self.PPON.module
         model_path = "sr_weight/PPON_G.pth"
         self.PPON.load_state_dict(torch.load(model_path), strict=True)
-
 
         # For SwinIR
         opt = {
@@ -116,7 +100,7 @@ class State:
     def step(self, act, inner_state):
         act = to_cpu(act)
         inner_state = to_cpu(inner_state)
-        srcnn = self.sr_image.clone()
+        # srcnn = self.sr_image.clone()
         # espcn = self.sr_image.clone()
         ppon = self.sr_image.clone()
         fsrcnn = self.sr_image.clone()
@@ -152,9 +136,16 @@ class State:
                 swinir = torch.from_numpy(output)
             if exist_value(act, 5):
                 # change VDSR to HAT
-                print(f"lr_image shape: {self.lr_image.float().shape}")
                 hat = self.HAT_model(self.lr_image.float())
                 hat = to_cpu(hat.int())
+            if exist_value(act, 6):
+                self.lr_image.cuda()
+                with torch.no_grad():
+                    self.RANKSRGAN.feed_data([self.lr_image], need_GT=False)
+                    self.RANKSRGAN.test()
+                    visuals = self.RANKSRGAN.get_current_visuals(need_GT=False)['rlt'].unsqueeze(0)
+                # ranksrgan = torch.from_numpy(visuals)
+                ranksrgan = visuals
 
         self.lr_image = to_cpu(self.lr_image)
         self.sr_image = moved_image
@@ -164,6 +155,7 @@ class State:
         self.sr_image = torch.where(act==3, ppon,  self.sr_image)
         self.sr_image = torch.where(act==4, swinir,  self.sr_image)
         self.sr_image = torch.where(act==5, hat,  self.sr_image)
+        self.sr_image = torch.where(act==6, ranksrgan,  self.sr_image)
 
         self.tensor[:,0:3,:,:] = self.sr_image
         self.tensor[:,-64:,:,:] = inner_state
