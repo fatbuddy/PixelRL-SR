@@ -43,28 +43,28 @@ class State:
         self.VDSR.load_state_dict(torch.load(model_path, dev))
         self.VDSR.eval()
         
-        opt = {
-            'alpha': 1.0,
-            'cuda': True,
-            'isHR': True,
-            'is_train': False,
-            'models': 'sr_weight/PPON_G.pth',
-            'pretrained_model_D': 'sr_weight/PPON_D.pth',
-            'pretrained_model_G': 'sr_weight/PPON_G.pth',
-            'only_y': True,
-            'output_folder': 'result/Set5/',
-            'save_path': 'save',
-            'test_hr_folder': f'dataset/test/x{scale}/labels',
-            'test_lr_folder': f'dataset/test/x{scale}/data',
-            'upscale_factor': scale,
-            'which_model': 'ppon'
-        }
-        opt = json.loads(json.dumps(opt), object_hook=obj)
-        self.PPON = networks.define_G(opt)
-        if isinstance(self.PPON, nn.DataParallel):
-            self.PPON = self.PPON.module
-        model_path = "sr_weight/PPON_G.pth"
-        self.PPON.load_state_dict(torch.load(model_path), strict=True)
+        # opt = {
+        #     'alpha': 1.0,
+        #     'cuda': True,
+        #     'isHR': True,
+        #     'is_train': False,
+        #     'models': 'sr_weight/PPON_G.pth',
+        #     'pretrained_model_D': 'sr_weight/PPON_D.pth',
+        #     'pretrained_model_G': 'sr_weight/PPON_G.pth',
+        #     'only_y': True,
+        #     'output_folder': 'result/Set5/',
+        #     'save_path': 'save',
+        #     'test_hr_folder': f'dataset/test/x{scale}/labels',
+        #     'test_lr_folder': f'dataset/test/x{scale}/data',
+        #     'upscale_factor': scale,
+        #     'which_model': 'ppon'
+        # }
+        # opt = json.loads(json.dumps(opt), object_hook=obj)
+        # self.PPON = networks.define_G(opt)
+        # if isinstance(self.PPON, nn.DataParallel):
+        #     self.PPON = self.PPON.module
+        # model_path = "sr_weight/PPON_G.pth"
+        # self.PPON.load_state_dict(torch.load(model_path), strict=True)
 
         # RANKSRGAN
         opt = {
