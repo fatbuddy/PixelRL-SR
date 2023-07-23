@@ -72,9 +72,9 @@ class State:
             'cuda': True,
             'isHR': True,
             'is_train': False,
-            'models': 'sr_weight/RankSRGAN_NIQE.pth',
-            'pretrained_model_D': 'sr_weight/RankSRGAN_NIQE.pth',
-            'pretrained_model_G': 'sr_weight/RankSRGAN_NIQE.pth',
+            'models': 'sr_weight/mmsr_RankSRGAN_NIQE.pth',
+            'pretrained_model_D': 'sr_weight/mmsr_RankSRGAN_NIQE.pth',
+            'pretrained_model_G': 'sr_weight/mmsr_RankSRGAN_NIQE.pth',
             'only_y': True,
             'output_folder': 'result/Set5/',
             'save_path': 'save',
@@ -149,7 +149,8 @@ class State:
                     self.RANKSRGAN.feed_data([self.lr_image], need_GT=False)
                     self.RANKSRGAN.test()
                     visuals = self.RANKSRGAN.get_current_visuals(need_GT=False)['rlt'].unsqueeze(0)
-                ranksrgan = torch.from_numpy(visuals)
+                # ranksrgan = torch.from_numpy(visuals)
+                ranksrgan = visuals
             if exist_value(act, 4):
                 srcnn[:, :, 8:-8, 8:-8] = to_cpu(self.SRCNN(self.sr_image))
                 # print(f"srcnn shape: {srcnn.shape}")
