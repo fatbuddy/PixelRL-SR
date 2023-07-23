@@ -25,21 +25,6 @@ class State:
 
         dev = torch.device(device)
 
-        self.FSRCNN = FSRCNN_model(scale).to(device)
-        model_path = f"sr_weight/x{scale}/FSRCNN-x{scale}.pt"
-        self.FSRCNN.load_state_dict(torch.load(model_path, dev))
-        self.FSRCNN.eval()
-
-        self.ESPCN = ESPCN_model(scale).to(device)
-        model_path = f"sr_weight/x{scale}/ESPCN-x{scale}.pt"
-        self.ESPCN.load_state_dict(torch.load(model_path, dev))
-        self.ESPCN.eval()
-
-        self.VDSR = VDSR_model().to(device)
-        model_path = "sr_weight/VDSR.pt"
-        self.VDSR.load_state_dict(torch.load(model_path, dev))
-        self.VDSR.eval()
-        
         opt = {
             'alpha': 1.0,
             'cuda': True,
@@ -116,12 +101,9 @@ class State:
     def step(self, act, inner_state):
         act = to_cpu(act)
         inner_state = to_cpu(inner_state)
-        srcnn = self.sr_image.clone()
-        # espcn = self.sr_image.clone()
         ppon = self.sr_image.clone()
-        fsrcnn = self.sr_image.clone()
-        vdsr = self.sr_image.clone()
         swinir = self.sr_image.clone()
+        hat = self.sr_image.clone()
 
         neutral = (self.move_range - 1) / 2
         move = act.type(torch.float32)
@@ -152,7 +134,6 @@ class State:
                 swinir = torch.from_numpy(output)
             if exist_value(act, 5):
                 # change VDSR to HAT
-                print(f"lr_image shape: {self.lr_image.float().shape}")
                 hat = self.HAT_model(self.lr_image.float())
                 hat = to_cpu(hat.int())
 
