@@ -120,11 +120,20 @@ class State:
         with torch.no_grad():
             if exist_value(act, 3):
                 # change ESPCN to PPON
-                # espcn = to_cpu(self.ESPCN(self.lr_image))
+                self.PPON.cuda()
+                out_c, out_s, out_p = self.PPON(self.lr_image)
+                out_c, out_s, out_p = out_c.cpu(), out_s.cpu(), out_p.cpu()
+                out_img_p = out_c.detach().numpy().squeeze()
+                ppon = torch.from_numpy(out_img_p)
+                # out_img_c = convert_shape(out_img_c)
+                # out_img_s = out_s.detach().numpy()
+                # out_img_s = convert_shape(out_img_s)
+                # out_img_p = out_p.detach().numpy()
+                # out_img_p = convert_shape(out_img_p)
+            if exist_value(act, 4):
+                # change SRCNN to SwinIR
                 self.SwinIR.cuda()
                 self.lr_image.cuda()
-                # print(self.lr_image.shape)
-                # with torch.no_grad():
                 output = self.SwinIR(self.lr_image)
                 output = output.cpu()
                 output = output.detach().numpy().squeeze()
@@ -145,8 +154,8 @@ class State:
         act = act.unsqueeze(1)
         act = torch.concat([act, act, act], 1)
         # self.sr_image = torch.where(act==3, espcn,  self.sr_image)
-        self.sr_image = torch.where(act==3, swinir,  self.sr_image)
-        # self.sr_image = torch.where(act==4, srcnn,  self.sr_image)
+        self.sr_image = torch.where(act==3, ppon,  self.sr_image)
+        self.sr_image = torch.where(act==4, swinir,  self.sr_image)
         # self.sr_image = torch.where(act==5, vdsr,   self.sr_image)
         # self.sr_image = torch.where(act==6, fsrcnn, self.sr_image)
 
