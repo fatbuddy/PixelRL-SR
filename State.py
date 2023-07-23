@@ -2,6 +2,7 @@ import torch
 from neuralnet import ESPCN_model, FSRCNN_model, SRCNN_model, VDSR_model
 import torch.nn as nn
 from PPON.PPON_model import PPONModel
+from RANKSRGAN.RankSRGAN_model import SRGANModel
 from PPON import networks
 from utils.common import exist_value, to_cpu, convert_shape
 import json
@@ -65,6 +66,29 @@ class State:
         model_path = "sr_weight/PPON_G.pth"
         self.PPON.load_state_dict(torch.load(model_path), strict=True)
 
+        # RANKSRGAN
+        opt = {
+            'alpha': 1.0,
+            'cuda': True,
+            'isHR': True,
+            'is_train': False,
+            'models': 'sr_weight/RankSRGAN_NIQE.pth',
+            'pretrained_model_D': 'sr_weight/RankSRGAN_NIQE.pth',
+            'pretrained_model_G': 'sr_weight/RankSRGAN_NIQE.pth',
+            'only_y': True,
+            'output_folder': 'result/Set5/',
+            'save_path': 'save',
+            'test_hr_folder': f'dataset/test/x{scale}/labels',
+            'test_lr_folder': f'dataset/test/x{scale}/data',
+            'upscale_factor': scale,
+            'which_model': 'SRResNet',
+        }
+        opt = json.loads(json.dumps(opt), object_hook=obj)
+        self.RANKSRGAN = SRGANModel(opt)
+        if isinstance(self.RANKSRGAN, nn.DataParallel):
+            self.RANKSRGAN = self.RANKSRGAN.module
+
+
     def reset(self, lr, bicubic):
         self.lr_image = lr 
         self.sr_image = bicubic
@@ -82,7 +106,8 @@ class State:
         inner_state = to_cpu(inner_state)
         srcnn = self.sr_image.clone()
         # espcn = self.sr_image.clone()
-        ppon = self.sr_image.clone()
+        ranksrgan = self.sr_image.clone()
+        # ppon = self.sr_image.clone()
         fsrcnn = self.sr_image.clone()
         vdsr = self.sr_image.clone()
 
@@ -97,25 +122,36 @@ class State:
         self.sr_image = self.sr_image.to(self.device)
 
         with torch.no_grad():
+            # if exist_value(act, 3):
+            #     # change ESPCN to PPON
+            #     # espcn = to_cpu(self.ESPCN(self.lr_image))
+            #     self.PPON.cuda()
+            #     self.lr_image.cuda()
+            #     # print(self.lr_image.shape)
+            #     with torch.no_grad():
+            #         out_c, out_s, out_p = self.PPON(self.lr_image)
+            #         out_c, out_s, out_p = out_c.cpu(), out_s.cpu(), out_p.cpu()
+            #         out_img_c = out_c.detach().numpy().squeeze()
+            #         # out_img_c = convert_shape(out_img_c)
+
+            #         out_img_s = out_s.detach().numpy()
+            #         # out_img_s = convert_shape(out_img_s)
+
+            #         out_img_p = out_p.detach().numpy()
+            #         # out_img_p = convert_shape(out_img_p)
+            #     # print(out_img_c.shape)
+            #     ppon = torch.from_numpy(out_img_c)
+
             if exist_value(act, 3):
-                # change ESPCN to PPON
-                # espcn = to_cpu(self.ESPCN(self.lr_image))
-                self.PPON.cuda()
+                self.RANKSRGAN.cuda()
                 self.lr_image.cuda()
                 # print(self.lr_image.shape)
                 with torch.no_grad():
+                    self.RANKSRGAN.feed_data([self.lr_image], need_GT=False)
+                    visuals = self.RANKSRGAN.get_current_visuals(need_GT=False)['rlt'].unsqueeze(0)
                     out_c, out_s, out_p = self.PPON(self.lr_image)
                     out_c, out_s, out_p = out_c.cpu(), out_s.cpu(), out_p.cpu()
-                    out_img_c = out_c.detach().numpy().squeeze()
-                    # out_img_c = convert_shape(out_img_c)
-
-                    out_img_s = out_s.detach().numpy()
-                    # out_img_s = convert_shape(out_img_s)
-
-                    out_img_p = out_p.detach().numpy()
-                    # out_img_p = convert_shape(out_img_p)
-                # print(out_img_c.shape)
-                ppon = torch.from_numpy(out_img_c)
+                ranksrgan = torch.from_numpy(visuals)
             if exist_value(act, 4):
                 srcnn[:, :, 8:-8, 8:-8] = to_cpu(self.SRCNN(self.sr_image))
                 # print(f"srcnn shape: {srcnn.shape}")
@@ -131,7 +167,8 @@ class State:
         act = act.unsqueeze(1)
         act = torch.concat([act, act, act], 1)
         # self.sr_image = torch.where(act==3, espcn,  self.sr_image)
-        self.sr_image = torch.where(act==3, ppon,  self.sr_image)
+        # self.sr_image = torch.where(act==3, ppon,  self.sr_image)
+        self.sr_image = torch.where(act==3, ranksrgan,  self.sr_image)
         self.sr_image = torch.where(act==4, srcnn,  self.sr_image)
         self.sr_image = torch.where(act==5, vdsr,   self.sr_image)
         self.sr_image = torch.where(act==6, fsrcnn, self.sr_image)

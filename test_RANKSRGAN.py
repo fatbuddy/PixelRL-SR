@@ -1,8 +1,5 @@
 import torch
 import torch.nn as nn
-# from PPON.PPON_model import PPONModel
-# from PPON import networks
-from RANKSRGAN import networks
 from RANKSRGAN.RankSRGAN_model import SRGANModel
 import json
 import os
@@ -38,7 +35,6 @@ def main():
         'test_lr_folder': f'dataset/test/x{SCALE}/data',
         'upscale_factor': SCALE,
         'which_model': 'SRResNet',
-        'gpu_ids': None
     }
     opt = json.loads(json.dumps(opt), object_hook=obj)
     RANKSRGAN = SRGANModel(opt)
