@@ -26,6 +26,7 @@ class State:
 
         dev = torch.device(device)
 
+        # PPON
         opt = {
             'alpha': 1.0,
             'cuda': True,
@@ -67,6 +68,7 @@ class State:
         self.SwinIR = define_model(opt)
         self.SwinIR.eval()
 
+        # For HAT
         self.HAT_model = HAT(upscale=4,
             in_chans=3,
             img_size=64,
@@ -86,6 +88,28 @@ class State:
         self.HAT_model.load_state_dict(torch.load(model_path)['params_ema'])
         self.HAT_model.eval()
 
+        # RANKSRGAN
+        opt = {
+            'alpha': 1.0,
+            'cuda': True,
+            'isHR': True,
+            'is_train': False,
+            'models': 'sr_weight/mmsr_RankSRGAN_NIQE.pth',
+            'pretrained_model_D': 'sr_weight/mmsr_RankSRGAN_NIQE.pth',
+            'pretrained_model_G': 'sr_weight/mmsr_RankSRGAN_NIQE.pth',
+            'only_y': True,
+            'output_folder': 'result/Set5/',
+            'save_path': 'save',
+            'test_hr_folder': f'dataset/test/x{scale}/labels',
+            'test_lr_folder': f'dataset/test/x{scale}/data',
+            'upscale_factor': scale,
+            'which_model': 'SRResNet',
+        }
+        opt = json.loads(json.dumps(opt), object_hook=obj)
+        self.RANKSRGAN = SRGANModel(opt)
+        if isinstance(self.RANKSRGAN, nn.DataParallel):
+            self.RANKSRGAN = self.RANKSRGAN.module
+
     def reset(self, lr, bicubic):
         self.lr_image = lr 
         self.sr_image = bicubic
@@ -104,6 +128,7 @@ class State:
         ppon = self.sr_image.clone()
         swinir = self.sr_image.clone()
         hat = self.sr_image.clone()
+        ranksrgan = self.sr_image.clone()
 
         neutral = (self.move_range - 1) / 2
         move = act.type(torch.float32)
@@ -142,7 +167,6 @@ class State:
                     self.RANKSRGAN.feed_data([self.lr_image], need_GT=False)
                     self.RANKSRGAN.test()
                     visuals = self.RANKSRGAN.get_current_visuals(need_GT=False)['rlt'].unsqueeze(0)
-                # ranksrgan = torch.from_numpy(visuals)
                 ranksrgan = visuals
 
         self.lr_image = to_cpu(self.lr_image)
