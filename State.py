@@ -4,8 +4,9 @@ from SwinIR.utils import *
 import torch.nn as nn
 from PPON.PPON_model import PPONModel
 from PPON import networks
-from utils.common import exist_value, to_cpu, convert_shape
+from utils.common import exist_value, to_cpu, convert_shape, pad_image_to_factor_of_16
 import json
+from hat.archs.hat_arch import HAT
 
 # declaringa a class
 class obj:
@@ -23,10 +24,6 @@ class State:
         self.move_range = 3
 
         dev = torch.device(device)
-        self.SRCNN = SRCNN_model().to(device)
-        model_path = "sr_weight/SRCNN-955.pt"
-        self.SRCNN.load_state_dict(torch.load(model_path, dev))
-        self.SRCNN.eval()
 
         self.FSRCNN = FSRCNN_model(scale).to(device)
         model_path = f"sr_weight/x{scale}/FSRCNN-x{scale}.pt"
@@ -139,7 +136,9 @@ class State:
                 output = output.detach().numpy().squeeze()
                 # print(out_img_c.shape)
                 swinir = torch.from_numpy(output)
-            # if exist_value(act, 4):
+            if exist_value(act, 5):
+                hat = self.HAT_model(self.lr_image.float())
+                hat = to_cpu(hat.int())
             #     srcnn[:, :, 8:-8, 8:-8] = to_cpu(self.SRCNN(self.sr_image))
             #     # print(f"srcnn shape: {srcnn.shape}")
             # if exist_value(act, 5):
@@ -153,9 +152,11 @@ class State:
         self.sr_image = moved_image
         act = act.unsqueeze(1)
         act = torch.concat([act, act, act], 1)
+  
         # self.sr_image = torch.where(act==3, espcn,  self.sr_image)
         self.sr_image = torch.where(act==3, ppon,  self.sr_image)
         self.sr_image = torch.where(act==4, swinir,  self.sr_image)
+        self.sr_image = torch.where(act==5, hat,  self.sr_image)
         # self.sr_image = torch.where(act==5, vdsr,   self.sr_image)
         # self.sr_image = torch.where(act==6, fsrcnn, self.sr_image)
 
