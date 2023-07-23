@@ -145,13 +145,10 @@ class State:
             if exist_value(act, 3):
                 self.RANKSRGAN.cuda()
                 self.lr_image.cuda()
-                # print(self.lr_image.shape)
                 with torch.no_grad():
                     self.RANKSRGAN.feed_data([self.lr_image], need_GT=False)
                     self.RANKSRGAN.test()
                     visuals = self.RANKSRGAN.get_current_visuals(need_GT=False)['rlt'].unsqueeze(0)
-                    out_c, out_s, out_p = self.PPON(self.lr_image)
-                    out_c, out_s, out_p = out_c.cpu(), out_s.cpu(), out_p.cpu()
                 ranksrgan = torch.from_numpy(visuals)
             if exist_value(act, 4):
                 srcnn[:, :, 8:-8, 8:-8] = to_cpu(self.SRCNN(self.sr_image))
