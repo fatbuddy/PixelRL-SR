@@ -104,12 +104,12 @@ class State:
     def step(self, act, inner_state):
         act = to_cpu(act)
         inner_state = to_cpu(inner_state)
-        srcnn = self.sr_image.clone()
+        # srcnn = self.sr_image.clone()
         # espcn = self.sr_image.clone()
         ranksrgan = self.sr_image.clone()
         # ppon = self.sr_image.clone()
-        fsrcnn = self.sr_image.clone()
-        vdsr = self.sr_image.clone()
+        # fsrcnn = self.sr_image.clone()
+        # vdsr = self.sr_image.clone()
 
         neutral = (self.move_range - 1) / 2
         move = act.type(torch.float32)
@@ -150,15 +150,15 @@ class State:
                     visuals = self.RANKSRGAN.get_current_visuals(need_GT=False)['rlt'].unsqueeze(0)
                 # ranksrgan = torch.from_numpy(visuals)
                 ranksrgan = visuals
-            if exist_value(act, 4):
-                srcnn[:, :, 8:-8, 8:-8] = to_cpu(self.SRCNN(self.sr_image))
-                # print(f"srcnn shape: {srcnn.shape}")
-            if exist_value(act, 5):
-                vdsr = to_cpu(self.VDSR(self.sr_image))
-                # print(f"VDSR shape: {vdsr.shape}")
-            if exist_value(act, 6):
-                fsrcnn = to_cpu(self.FSRCNN(self.lr_image))
-                # print(f"fsrcnn shape: {fsrcnn.shape}")
+            # if exist_value(act, 4):
+            #     srcnn[:, :, 8:-8, 8:-8] = to_cpu(self.SRCNN(self.sr_image))
+            #     # print(f"srcnn shape: {srcnn.shape}")
+            # if exist_value(act, 5):
+            #     vdsr = to_cpu(self.VDSR(self.sr_image))
+            #     # print(f"VDSR shape: {vdsr.shape}")
+            # if exist_value(act, 6):
+            #     fsrcnn = to_cpu(self.FSRCNN(self.lr_image))
+            #     # print(f"fsrcnn shape: {fsrcnn.shape}")
 
         self.lr_image = to_cpu(self.lr_image)
         self.sr_image = moved_image
@@ -167,9 +167,9 @@ class State:
         # self.sr_image = torch.where(act==3, espcn,  self.sr_image)
         # self.sr_image = torch.where(act==3, ppon,  self.sr_image)
         self.sr_image = torch.where(act==3, ranksrgan,  self.sr_image)
-        self.sr_image = torch.where(act==4, srcnn,  self.sr_image)
-        self.sr_image = torch.where(act==5, vdsr,   self.sr_image)
-        self.sr_image = torch.where(act==6, fsrcnn, self.sr_image)
+        # self.sr_image = torch.where(act==4, srcnn,  self.sr_image)
+        # self.sr_image = torch.where(act==5, vdsr,   self.sr_image)
+        # self.sr_image = torch.where(act==6, fsrcnn, self.sr_image)
 
         self.tensor[:,0:3,:,:] = self.sr_image
         self.tensor[:,-64:,:,:] = inner_state
