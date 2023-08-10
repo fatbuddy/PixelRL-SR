@@ -96,8 +96,8 @@ def main():
             sr = sr.type(torch.uint8)
             sr = ycbcr2rgb(sr)
 
-            psnr_sr[i] = PSNR(hr, sr)
-            psnr = PSNR(hr, sr)
+            psnr_sr[i] = PSNR(hr_origin, sr)
+            psnr = PSNR(hr_origin, sr)
             metric_array.append(psnr)
             sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
             # sr_image_np = (sr_image_np * 255.0).astype(np.uint8)
