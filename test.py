@@ -62,6 +62,7 @@ def main():
         hr_image_path = LS_HR_PATHS[i]
         lr_image_path = LS_LR_PATHS[i]
         hr = read_image(hr_image_path)
+        hr_origin = hr.clone()
         lr = read_image(lr_image_path)
         lr = gaussian_blur(lr, sigma=SIGMA)
         bicubic = upscale(lr, SCALE)
@@ -91,14 +92,18 @@ def main():
                 sum_reward += torch.mean(reward * 255) * (GAMMA ** t)
 
             sr = torch.clip(CURRENT_STATE.sr_image, 0.0, 1.0)
+            sr = denorm01(sr)
+            sr = sr.type(torch.uint8)
+            sr = ycbcr2rgb(sr)
+
             psnr_sr[i] = PSNR(hr, sr)
             psnr = PSNR(hr, sr)
             metric_array.append(psnr)
             sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
-            sr_image_np = (sr_image_np * 255.0).astype(np.uint8)
-            hr_image_np = (hr.detach().numpy() * 255.0).astype(np.uint8)
-            ssim_sr[i] = compute_ssim(hr_image_np, sr_image_np)
-            mse_sr[i] = compute_mse(hr_image_np, sr_image_np)
+            # sr_image_np = (sr_image_np * 255.0).astype(np.uint8)
+            # hr_image_np = (hr.detach().numpy() * 255.0).astype(np.uint8)
+            ssim_sr[i] = compute_ssim(hr_origin, sr_image_np)
+            mse_sr[i] = compute_mse(hr_origin, sr_image_np)
             metric_array.append(psnr_sr[i])
             reward_array.append(sum_reward)
 
