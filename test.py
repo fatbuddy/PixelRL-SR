@@ -102,8 +102,9 @@ def main():
             sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
             # sr_image_np = (sr_image_np * 255.0).astype(np.uint8)
             # hr_image_np = (hr.detach().numpy() * 255.0).astype(np.uint8)
-            ssim_sr[i] = compute_ssim(hr_origin, sr_image_np)
-            mse_sr[i] = compute_mse(hr_origin, sr_image_np)
+            hr_image_np = hr_origin.detach().numpy()
+            ssim_sr[i] = compute_ssim(hr_image_np, sr_image_np)
+            mse_sr[i] = compute_mse(hr_image_np, sr_image_np)
             metric_array.append(psnr_sr[i])
             reward_array.append(sum_reward)
 
