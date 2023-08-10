@@ -92,12 +92,14 @@ def main():
                 sum_reward += torch.mean(reward * 255) * (GAMMA ** t)
 
             sr = torch.clip(CURRENT_STATE.sr_image[0], 0.0, 1.0)
+            
+            psnr_sr[i] = PSNR(hr, sr)
+            psnr = PSNR(hr, sr)
+
             sr = denorm01(sr)
             sr = sr.type(torch.uint8)
             sr = ycbcr2rgb(sr)
 
-            psnr_sr[i] = PSNR(hr_origin, sr)
-            psnr = PSNR(hr_origin, sr)
             metric_array.append(psnr)
             sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
             # sr_image_np = (sr_image_np * 255.0).astype(np.uint8)
