@@ -58,11 +58,27 @@ def main():
     psnr_sr = np.zeros(len(LS_HR_PATHS))
     ssim_sr = np.zeros(len(LS_HR_PATHS))
     mse_sr = np.zeros(len(LS_HR_PATHS))
+
+    psnr_bicubic = np.zeros(len(LS_HR_PATHS))
+    ssim_bicubic = np.zeros(len(LS_HR_PATHS))
+    mse_bicubic = np.zeros(len(LS_HR_PATHS))
+
     for i in range(0, len(LS_HR_PATHS)):
         hr_image_path = LS_HR_PATHS[i]
         lr_image_path = LS_LR_PATHS[i]
         hr = read_image(hr_image_path)
         hr_origin = hr.clone()
+
+        hr_image_np = hr_origin.detach().numpy()
+        lr = read_image(lr_image_path)
+        lr = gaussian_blur(lr, sigma=SIGMA)
+        bicubic = upscale(lr, SCALE)
+        write_image("bicubic.png", bicubic)
+
+        psnr_bicubic[i] = PSNR(hr_origin, bicubic, 255)
+        ssim_bicubic[i] = compute_ssim(hr_image_np, bicubic.detach().numpy())
+        mse_bicubic[i] = compute_mse(hr_image_np, bicubic.detach().numpy())
+
         lr = read_image(lr_image_path)
         lr = gaussian_blur(lr, sigma=SIGMA)
         bicubic = upscale(lr, SCALE)
@@ -91,14 +107,14 @@ def main():
 
                 sum_reward += torch.mean(reward * 255) * (GAMMA ** t)
 
-            sr = torch.clip(CURRENT_STATE.sr_image[0], 0.0, 1.0)
-            
-            psnr_sr[i] = PSNR(hr, sr)
-            psnr = PSNR(hr, sr)
+            sr = torch.clip(CURRENT_STATE.sr_image[0], 0.0, 1.0) 
 
             sr = denorm01(sr)
             sr = sr.type(torch.uint8)
             sr = ycbcr2rgb(sr)
+
+            psnr_sr[i] = PSNR(hr, sr, 255)
+            psnr = PSNR(hr, sr, 255)
 
             metric_array.append(psnr)
             sr_image_np = sr.detach().numpy()  # Convert tensor to numpy array
@@ -109,6 +125,7 @@ def main():
             mse_sr[i] = compute_mse(hr_image_np, sr_image_np)
             metric_array.append(psnr_sr[i])
             reward_array.append(sum_reward)
+            write_image("sr.png", sr)
 
     print(f"Average reward: {torch.mean(torch.tensor(reward_array) * 255):.4f}"
           , f"- PSNR: {torch.mean(torch.tensor(metric_array)):.4f}")
