@@ -32,7 +32,7 @@ if (MODEL_PATH == "") or (MODEL_PATH == "default"):
     MODEL_PATH = f"checkpoint/x{SCALE}/PixelRL_SR-x{SCALE}.pt"
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-N_ACTIONS = 7
+N_ACTIONS = 4
 GAMMA = 0.95
 T_MAX = 5
 SIGMA = 0.3 if SCALE == 2 else 0.2
