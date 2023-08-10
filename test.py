@@ -91,7 +91,7 @@ def main():
 
                 sum_reward += torch.mean(reward * 255) * (GAMMA ** t)
 
-            sr = torch.clip(CURRENT_STATE.sr_image, 0.0, 1.0)
+            sr = torch.clip(CURRENT_STATE.sr_image[0], 0.0, 1.0)
             sr = denorm01(sr)
             sr = sr.type(torch.uint8)
             sr = ycbcr2rgb(sr)
